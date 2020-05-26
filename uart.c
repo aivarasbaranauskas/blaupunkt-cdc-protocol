@@ -5,7 +5,6 @@
 #define F_CPU 16000000UL
 #endif
 
-
 /* http://www.cs.mun.ca/~rod/Winter2007/4723/notes/serial/serial.html */
 
 void uart_9600(void) {

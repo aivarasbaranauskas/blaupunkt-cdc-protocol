@@ -18,19 +18,44 @@
 #include "main.h"
 #include "uart.h"
 
-int main(void) {    
+#define MAX_MESSAGE_LENGTH 16
 
-    uart_init();
-    stdout = &uart_output;
-    stdin  = &uart_input;
-                
-    char input;
+#define STATUS_UNINITIALISED 0
+#define STATUS_INITIALISATION_STARTED 1
+#define STATUS_INITIALISED 2
 
-    while(1) {
-        puts("Hello world!");
-        input = getchar();
-        printf("You wrote %c\n", input);        
-    }
+#define MESSAGE_START = 0x180;
+#define MESSAGE_END = 0x14F;
+
+int main(void) {
+    uint8_t status = STATUS_UNINITIALISED;
+    unsigned int msg[MAX_MESSAGE_LENGTH];
+    unsigned int msg_len = 0;
+    bool msg_received = false;
+
+    // start at 4800
+    uart_4800();
+
+    // main loop
+    while (true) {
+        // receive message
+        msg_received = false;
+        msg_len = 0;
+        while (!msg_received) {
+            msg[msg_len] = uart_receive();
+            if (msg[msg_len] == MESSAGE_END) {
+                msg_received = true;
+            } else {
+                // echo back everything except MESSAGE_END 
+                uart_send(msg[msg_len]);
+            }
+            msg_len++;
+        }
         
+        // interpret the message
+
+        
+    }
+
     return 0;
 }
