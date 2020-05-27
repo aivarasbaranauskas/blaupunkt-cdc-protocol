@@ -7,6 +7,11 @@
 
 /* http://www.cs.mun.ca/~rod/Winter2007/4723/notes/serial/serial.html */
 
+void uart_shared(void) {
+    UCSR0C = _BV(UCSZ00) | _BV(UCSZ01); /* 9-bit data */
+    UCSR0B = _BV(RXEN0) | _BV(TXEN0) | _BV(UCSZ02);   /* Enable RX and TX */
+}
+
 void uart_9600(void) {
 #undef BAUD
 #define BAUD 9600
@@ -41,31 +46,26 @@ void uart_4800(void) {
     uart_shared();
 }
 
-void uart_shared(void) {
-    UCSR0C = _BV(UCSZ01) | _BV(UCSZ00) | _BV(UCSZ20); /* 9-bit data */
-    UCSR0B = _BV(RXEN0) | _BV(TXEN0);   /* Enable RX and TX */
-}
-
 void uart_send(unsigned int data) {
     loop_until_bit_is_set(UCSR0A, UDRE0);
-    /* Copy 9th bit to TXB8 */
-    UCSR0B &= ~(1<<TXB8);
+    /* Copy 9th bit to TXB80 */
+    UCSR0B &= ~(1<<TXB80);
     if ( data & 0x0100 ) {
-        UCSR0B |= (1<<TXB8);
+        UCSR0B |= (1<<TXB80);
     }
     UDR0 = data;
 }
 
-unsigned int uart_receive() {
+unsigned int uart_receive(void) {
     unsigned char status, resh, resl;
     /* Wait for data to be received */
     loop_until_bit_is_set(UCSR0A, RXC0);
-    /* Get status and 9th bit, then data from buffer */
+    /* Get status and 9th bit, then read data from buffer */
     status = UCSR0A;
     resh = UCSR0B;
     resl = UDR0;
     /* If error, return -1 */
-    if ( status & (1<<FE0)|(1<<DOR0)|(1<<UPE0) ) {
+    if ( status & ( (1<<FE0) | (1<<DOR0) | (1<<UPE0) ) ) {
         return -1;
     }
     /* Filter the 9th bit, then return */
