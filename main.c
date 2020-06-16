@@ -24,17 +24,25 @@
 #define MAX_MESSAGE_LENGTH 16
 
 #define STATUS_UNINITIALISED 0
-#define STATUS_INITIALISATION_STARTED 1
-#define STATUS_INITIALISED 2
+#define STATUS_INITIALISATION_1 1
+#define STATUS_INITIALISATION_2 2
+#define STATUS_INITIALISED 3
 
 #define MESSAGE_START 0x180
 #define MESSAGE_END 0x14F
 
+struct Message
+{
+    unsigned int msg[MAX_MESSAGE_LENGTH];
+    unsigned int len;
+};
+
+struct Message receive(void);
+void send(struct Message m);
+
 int main(void) {
     uint8_t status = STATUS_UNINITIALISED;
-    unsigned int msg[MAX_MESSAGE_LENGTH];
-    unsigned int msg_len;
-    unsigned int msg_received;
+    struct Message m;
 
     // start at 4800
     uart_4800();
@@ -42,23 +50,70 @@ int main(void) {
     // main loop
     while (1) {
         // receive message
-        msg_received = 0;
-        msg_len = 0;
-        while (!msg_received) {
-            msg[msg_len] = uart_receive();
-            if (msg[msg_len] == MESSAGE_END) {
-                msg_received = 1;
-            } else {
-                // echo back everything except MESSAGE_END 
-                uart_send(msg[msg_len]);
-            }
-            msg_len++;
-        }
+        m = receive();
         
         // interpret the message
-
+        switch (status)
+        {
+        case STATUS_UNINITIALISED:
+            if (m.len == 3 && m.msg[1] == 0x0AD) {
+                status = STATUS_INITIALISATION_1;
+            }
+            break;
+        case STATUS_INITIALISATION_1:
+            if (m.len == 4 && m.msg[1] == 0x048 && m.msg[2] == 0x001) {
+                _delay_ms(30); // wait for 30ms
+                m.msg[0] = 0x10F;
+                m.msg[1] = 0x048;
+                m.msg[2] = 0x001;
+                m.msg[3] = MESSAGE_END;
+                m.len = 4;
+                send(m);
+                uart_9600();
+                status = STATUS_INITIALISATION_2;
+            }
+            break;
+        case STATUS_INITIALISATION_2:
+            if (m.len == 3 && m.msg[1] == 0x0A7) {
+                status = STATUS_INITIALISED;
+            }
+            break;
+        case STATUS_INITIALISED:
+            // TODO: send something?
+            break;
+        default:
+            break;
+        }
         
     }
 
     return 0;
+}
+
+struct Message receive(void) {
+    unsigned int msg_received = 0;
+    struct Message m;
+    m.len = 0;
+    while (!msg_received) {
+        m.msg[m.len] = uart_receive();
+        if (m.msg[m.len] == MESSAGE_END) {
+            msg_received = 1;
+        } else {
+            // echo back everything except MESSAGE_END 
+            uart_send(m.msg[m.len]);
+        }
+        m.len++;
+    }
+    return m;
+}
+
+void send(struct Message m) {
+    unsigned int resp;
+    for (int i = 0 ; i < m.len ; i++) {
+        uart_send(m.msg[i]);
+        resp = uart_receive();
+        if (m.msg[i] != resp) {
+            // TODO: echoed back incorrrectly
+        }
+    }
 }
