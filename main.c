@@ -26,7 +26,8 @@
 #define STATUS_UNINITIALISED 0
 #define STATUS_INITIALISATION_1 1
 #define STATUS_INITIALISATION_2 2
-#define STATUS_INITIALISED 3
+#define STATUS_INITIALISATION_3 3
+#define STATUS_INITIALISED 4
 
 #define MESSAGE_START 0x180
 #define MESSAGE_END 0x14F
@@ -69,14 +70,18 @@ int main(void) {
                 m.msg[3] = MESSAGE_END;
                 m.len = 4;
                 send(m);
-                uart_9600();
                 status = STATUS_INITIALISATION_2;
             }
             break;
         case STATUS_INITIALISATION_2:
-            if (m.len == 3 && m.msg[1] == 0x0A7) {
-                status = STATUS_INITIALISED;
+            if (m.len == 4 && m.msg[1] == 0x048 && m.msg[2] == 0x002) {
+                uart_9600();
+                status = STATUS_INITIALISATION_3;
             }
+            break;
+        case STATUS_INITIALISATION_3:
+            // We don't case what was sent here
+            status = STATUS_INITIALISED;
             break;
         case STATUS_INITIALISED:
             // TODO: send something?
