@@ -1,18 +1,3 @@
-/*
- * Demonstration on how to redirect stdio to UART. 
- *
- * http://appelsiini.net/2011/simple-usart-with-avr-libc
- *
- * To compile and upload run: make clean; make; make program;
- * Connect to serial with: screen /dev/tty.usbserial-*
- *
- * Copyright 2011 Mika Tuupola
- *
- * Licensed under the MIT license:
- *   http://www.opensource.org/licenses/mit-license.php
- *
- */
- 
 #include <stdio.h>
 #include <avr/io.h>
 #include <util/delay.h>
@@ -63,7 +48,7 @@ int main(void) {
             break;
         case STATUS_INITIALISATION_1:
             if (m.len == 4 && m.msg[1] == 0x048 && m.msg[2] == 0x001) {
-                _delay_ms(30); // wait for 30ms
+                _delay_ms(30);
                 m.msg[0] = 0x10F;
                 m.msg[1] = 0x048;
                 m.msg[2] = 0x001;
@@ -84,7 +69,48 @@ int main(void) {
             status = STATUS_INITIALISED;
             break;
         case STATUS_INITIALISED:
-            // TODO: send something?
+            if (m.len == 3 && m.msg[1] == 0x0A5) {
+                _delay_ms(30);
+                m.msg[0] = 0x101;
+                m.msg[1] = 0x001;
+                m.msg[2] = 0x001;
+                m.msg[3] = MESSAGE_END;
+                m.len = 4;
+                send(m);
+
+                _delay_ms(32);
+                m.msg[0] = 0x103;
+                m.msg[1] = 0x020;
+                m.msg[2] = 0x009;
+                m.msg[3] = 0x020;
+                m.msg[4] = 0x000;
+                m.msg[5] = MESSAGE_END;
+                m.len = 6;
+                send(m);
+
+                _delay_ms(30);
+                m.msg[0] = 0x10B;
+                m.msg[1] = 0x020;
+                m.msg[2] = 0x020;
+                m.msg[3] = 0x020;
+                m.msg[4] = 0x020;
+                m.msg[5] = 0x020;
+                m.msg[6] = 0x020;
+                m.msg[7] = 0x020;
+                m.msg[8] = 0x020;
+                m.msg[9] = MESSAGE_END;
+                m.len = 10;
+                send(m);
+
+                m.msg[0] = 0x10D;
+                m.msg[1] = 0x001;
+                m.msg[2] = 0x099; // numTracks
+                m.msg[3] = 0x025; // runtimeMin
+                m.msg[4] = 0x001; // runtimeSec
+                m.msg[5] = MESSAGE_END;
+                m.len = 6;
+                send(m);
+            }
             break;
         default:
             break;
